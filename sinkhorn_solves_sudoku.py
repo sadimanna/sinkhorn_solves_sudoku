@@ -7,6 +7,7 @@ Original file is located at
 
 import numpy as np
 import pandas as pd
+from sinkhorn_knopp import *
 
 """## Reading the dataset"""
 
@@ -113,7 +114,7 @@ def sinkhorn_balancer(Q, M=5, tol=1e-8):
     N = Q.shape[0]
     Qprev = Q
     while k < M:
-        # Columne balancing
+        # Column balancing
         for j in range(N):
             Chij = Q[:,j].sum()
             Q[:,j] = Q[:,j] / (Chij + 1e-6)
@@ -161,14 +162,14 @@ def uniqueness_checker(sudoku):
     
 
 ##%%%%%%%%% Sinkhorn Solution Finder %%%%%%%%%%%%%%%
-def sinkhorn_solve_contraints(cells):
+def sinkhorn_solve_contraints(cells, sk):
     #%%%%%%%%%%%% Constraints grouping %%%%%%%
     #%%%%%%%% Row constraints %%%%%%%%%
     for i in range(9):
         #%%%%%%%%% get pdfs and form prob constraint matrix %%%%%%%%%%%
         Q = np.concatenate([cell.get_pdf().reshape((1,9)) for cell in cells[i,:]], axis = 0)
         #%%%%%%%%% Sinkhorn balance %%%%%%%%%%%%%%
-        Q = sinkhorn_balancer(Q)
+        Q = sk.fit(Q + 1e-6) #sinkhorn_balancer(Q)
         #%%%%%%%%%% Extract probabilities %%%%%%%%%
         for r in range(9):
             cells[i,r].update_pdf(Q[r,:])
@@ -178,7 +179,7 @@ def sinkhorn_solve_contraints(cells):
         #%%%%%%%%% get pdfs and form prob constraint matrix %%%%%%%%%%%
         Q = np.concatenate([cell.get_pdf().reshape((1,9)) for cell in cells[:,i]], axis = 0)
         #%%%%%%%%% Sinkhorn balance %%%%%%%%%%%%%%
-        Q = sinkhorn_balancer(Q.reshape((9,9)))
+        Q = sk.fit(Q + 1e-6) #sinkhorn_balancer(Q.reshape((9,9)))
         #%%%%%%%%%% Extract probabilities %%%%%%%%%
         for c in range(9):
             cells[c,i].update_pdf(Q[c,:])
@@ -194,7 +195,7 @@ def sinkhorn_solve_contraints(cells):
                 Q.append(cells[r,c].get_pdf().reshape((1,9)))
         Q = np.concatenate(Q, axis = 0)
         #%%%%%%%%% Sinkhorn balance %%%%%%%%%%%%%%
-        Q = sinkhorn_balancer(Q.reshape((9,9)))
+        Q = sk.fit(Q + 1e-6) #sinkhorn_balancer(Q.reshape((9,9)))
         #%%%%%%%%%% Extract probabilities %%%%%%%%%
         q = 0
         for r in rows:
@@ -210,6 +211,8 @@ if __name__ == '__main__':
     sudokus = pd.read_csv('./sudoku.csv')
     probs = sudokus['quizzes']
     solts = sudokus['solutions']
+
+    sk = SinkhornKnopp(max_iter = 1000)
     # Example Sudoku puzzle
     for num in range(1):
         sudoku = probs[num] #'040100050107003960520008000000000017000906800803050620090060543600080700250097100'
@@ -225,8 +228,8 @@ if __name__ == '__main__':
         #     print(cells[i].get_pdf())
 
         ## %%%%%%%%%%% SOLVE SUDOKU %%%%%%%%%%%%%%%%%%%
-        for i in range(10):
-            cells = sinkhorn_solve_contraints(cells)
+        for i in range(1000):
+            cells = sinkhorn_solve_contraints(cells, sk)
             for i in range(9):
                 for j in range(9):
                     # if sudoku[i*9+j]=='0':
