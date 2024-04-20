@@ -1,5 +1,8 @@
-import warnings
+'''
+    Source: https://github.com/btaba/sinkhorn_knopp/blob/master/sinkhorn_knopp/sinkhorn_knopp.py
+'''
 
+import warnings
 import numpy as np
 
 
